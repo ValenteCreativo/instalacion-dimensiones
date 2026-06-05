@@ -3,29 +3,20 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 export interface Keypoint {
-    x: number;        // normalized 0-1
-    y: number;        // normalized 0-1
+    x: number; y: number;
     confidence: number;
     name: string;
 }
 
 export interface BodyPoseState {
     keypoints: Keypoint[];
-    connections: [number, number][];   // skeleton connection index pairs
+    connections: [number, number][];
     isLoaded: boolean;
     isSimulated: boolean;
     error: string | null;
 }
 
-declare global {
-    interface Window {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ml5: any;
-    }
-}
-
-// ─── Simulated body fallback ─────────────────────────────────────────
-// Keypoint names matching MoveNet order (index 0-16)
+// Keypoint names MoveNet order
 const KP_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",
     "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
@@ -33,21 +24,17 @@ const KP_NAMES = [
     "left_knee", "right_knee", "left_ankle", "right_ankle",
 ];
 
-// MoveNet skeleton connections (index pairs)
+// MoveNet connections
 const MOVENET_CONNECTIONS: [number, number][] = [
-    [0, 1], [0, 2], [1, 3], [2, 4],           // head
-    [5, 6],                                     // shoulders
-    [5, 7], [7, 9],                             // left arm
-    [6, 8], [8, 10],                            // right arm
-    [5, 11], [6, 12],                           // torso sides
-    [11, 12],                                   // hips
-    [11, 13], [13, 15],                         // left leg
-    [12, 14], [14, 16],                         // right leg
+    [0, 1], [0, 2], [1, 3], [2, 4],
+    [5, 6], [5, 7], [7, 9], [6, 8], [8, 10],
+    [5, 11], [6, 12], [11, 12],
+    [11, 13], [13, 15], [12, 14], [14, 16],
 ];
 
+// --- Simulated Body Fallback ---
 function generateSimulatedKeypoints(t: number): Keypoint[] {
-    const cx = 0.5;
-    const cy = 0.5;
+    const cx = 0.5; const cy = 0.5;
     const breathe = Math.sin(t * 0.8) * 0.012;
     const sway = Math.sin(t * 0.4) * 0.03;
     const armL = Math.sin(t * 0.6) * 0.06;
@@ -56,42 +43,34 @@ function generateSimulatedKeypoints(t: number): Keypoint[] {
     const legR = Math.sin(t * 0.5 + Math.PI) * 0.025;
 
     const pts: [number, number][] = [
-        [cx + sway, cy - 0.28 + breathe],               // 0 nose
-        [cx - 0.018 + sway, cy - 0.295 + breathe],      // 1 left_eye
-        [cx + 0.018 + sway, cy - 0.295 + breathe],      // 2 right_eye
-        [cx - 0.04 + sway, cy - 0.285 + breathe],       // 3 left_ear
-        [cx + 0.04 + sway, cy - 0.285 + breathe],       // 4 right_ear
-        [cx - 0.08 + sway, cy - 0.18 + breathe],        // 5 left_shoulder
-        [cx + 0.08 + sway, cy - 0.18 + breathe],        // 6 right_shoulder
-        [cx - 0.13 + armL + sway, cy - 0.05],           // 7 left_elbow
-        [cx + 0.13 - armR + sway, cy - 0.05],           // 8 right_elbow
-        [cx - 0.17 + armL * 1.4 + sway, cy + 0.07],    // 9 left_wrist
-        [cx + 0.17 - armR * 1.4 + sway, cy + 0.07],    // 10 right_wrist
-        [cx - 0.055 + sway * 0.5, cy + 0.06 + breathe * 0.5], // 11 left_hip
-        [cx + 0.055 + sway * 0.5, cy + 0.06 + breathe * 0.5], // 12 right_hip
-        [cx - 0.06 + legL, cy + 0.19],                  // 13 left_knee
-        [cx + 0.06 + legR, cy + 0.19],                  // 14 right_knee
-        [cx - 0.06 + legL * 0.5, cy + 0.33],            // 15 left_ankle
-        [cx + 0.06 + legR * 0.5, cy + 0.33],            // 16 right_ankle
+        [cx + sway, cy - 0.28 + breathe],               // 0
+        [cx - 0.018 + sway, cy - 0.295 + breathe],      // 1
+        [cx + 0.018 + sway, cy - 0.295 + breathe],      // 2
+        [cx - 0.04 + sway, cy - 0.285 + breathe],       // 3
+        [cx + 0.04 + sway, cy - 0.285 + breathe],       // 4
+        [cx - 0.08 + sway, cy - 0.18 + breathe],        // 5
+        [cx + 0.08 + sway, cy - 0.18 + breathe],        // 6
+        [cx - 0.13 + armL + sway, cy - 0.05],           // 7
+        [cx + 0.13 - armR + sway, cy - 0.05],           // 8
+        [cx - 0.17 + armL * 1.4 + sway, cy + 0.07],     // 9
+        [cx + 0.17 - armR * 1.4 + sway, cy + 0.07],     // 10
+        [cx - 0.055 + sway * 0.5, cy + 0.06 + breathe * 0.5], // 11
+        [cx + 0.055 + sway * 0.5, cy + 0.06 + breathe * 0.5], // 12
+        [cx - 0.06 + legL, cy + 0.19],                  // 13
+        [cx + 0.06 + legR, cy + 0.19],                  // 14
+        [cx - 0.06 + legL * 0.5, cy + 0.33],            // 15
+        [cx + 0.06 + legR * 0.5, cy + 0.33],            // 16
     ];
 
     return pts.map(([x, y], i) => ({
-        x, y,
-        confidence: 0.92,
-        name: KP_NAMES[i],
+        x, y, confidence: 0.92, name: KP_NAMES[i],
     }));
 }
 
-// ─── Hook ────────────────────────────────────────────────────────────
-export function useBodyPose(
-    videoRef: React.RefObject<HTMLVideoElement | null>
-): BodyPoseState {
+export function useBodyPose(videoRef: React.RefObject<HTMLVideoElement | null>): BodyPoseState {
     const [state, setState] = useState<BodyPoseState>({
-        keypoints: [],
-        connections: MOVENET_CONNECTIONS,
-        isLoaded: false,
-        isSimulated: false,
-        error: null,
+        keypoints: [], connections: MOVENET_CONNECTIONS,
+        isLoaded: false, isSimulated: false, error: null,
     });
 
     const rafRef = useRef<number>(0);
@@ -99,17 +78,16 @@ export function useBodyPose(
 
     const startSimulation = useCallback(() => {
         if (isSimulating.current) return;
+        console.warn("Starting ml5 simulation fallback");
         isSimulating.current = true;
         let t = 0;
-
         const loop = () => {
             t += 0.016;
-            setState((prev) => ({
+            setState(prev => ({
                 ...prev,
                 keypoints: generateSimulatedKeypoints(t),
                 connections: MOVENET_CONNECTIONS,
-                isLoaded: true,
-                isSimulated: true,
+                isLoaded: true, isSimulated: true,
             }));
             rafRef.current = requestAnimationFrame(loop);
         };
@@ -120,85 +98,88 @@ export function useBodyPose(
         let stopped = false;
 
         async function init() {
-            // Wait for ml5 CDN script to load (up to 3s)
+            // 1. Wait for ml5 script (increased wait time to avoid premature fallback)
             let waited = 0;
-            while (!window.ml5 && waited < 3000) {
-                await new Promise((r) => setTimeout(r, 200));
+            // @ts-ignore
+            while (!window.ml5 && waited < 8000) {
+                await new Promise(r => setTimeout(r, 200));
                 waited += 200;
             }
 
+            // @ts-ignore
             if (!window.ml5) {
-                console.warn("ml5 not loaded — using simulation");
+                console.error("ml5 library not loaded from CDN");
                 if (!stopped) startSimulation();
                 return;
             }
 
             try {
+                // 2. Request webcam
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480, facingMode: "user" },
+                    video: { facingMode: "user" },
                 });
 
                 const video = videoRef.current;
                 if (!video || stopped) {
-                    stream.getTracks().forEach((t) => t.stop());
+                    stream.getTracks().forEach(t => t.stop());
                     return;
                 }
 
                 video.srcObject = stream;
-                await video.play();
+                video.play();
 
-                // ml5 v1 API: ml5.bodyPose(model?, options?, callback?)
+                // Wait for video dimensions to be ready
+                await new Promise(r => {
+                    video.onloadedmetadata = () => { r(true) };
+                    // fallback if event missed
+                    setTimeout(r, 1000);
+                });
+
+                // 3. Initialize ml5 MoveNet
+                // @ts-ignore
                 const bp = window.ml5.bodyPose("MoveNet");
 
-                // Wait for model to be ready before starting detection
-                // getSkeleton() returns [[indexA, indexB], ...] pairs
-                let skeleton: [number, number][] = MOVENET_CONNECTIONS;
-                try {
-                    skeleton = bp.getSkeleton() ?? MOVENET_CONNECTIONS;
-                } catch {
-                    // getSkeleton sometimes only works after first detection
-                }
+                let skeleton = MOVENET_CONNECTIONS;
 
-                // detectStart(input, callback) — callback receives pose results array
-                bp.detectStart(video, (results: {
-                    keypoints: { x: number; y: number; score?: number; confidence?: number; name?: string }[];
-                }[]) => {
+                // 4. Start detection loop
+                bp.detectStart(video, (results: any[]) => {
                     if (stopped) return;
                     if (!results || results.length === 0) return;
 
-                    const pose = results[0];
-                    const w = video.videoWidth || 640;
-                    const h = video.videoHeight || 480;
-
-                    // Try to get skeleton from live result if not yet retrieved
+                    // Try to get skeleton once
                     try {
                         const s = bp.getSkeleton();
                         if (s && s.length > 0) skeleton = s;
                     } catch { /* ignore */ }
 
-                    const kps: Keypoint[] = pose.keypoints.map((kp, i) => ({
+                    const pose = results[0];
+                    const w = video.videoWidth || 640;
+                    const h = video.videoHeight || 480;
+
+                    const kps: Keypoint[] = pose.keypoints.map((kp: any, i: number) => ({
                         x: kp.x / w,
                         y: kp.y / h,
                         confidence: kp.score ?? kp.confidence ?? 0,
                         name: kp.name ?? KP_NAMES[i] ?? `kp_${i}`,
                     }));
 
-                    setState((prev) => ({
-                        ...prev,
+                    setState({
                         keypoints: kps,
                         connections: skeleton,
                         isLoaded: true,
                         isSimulated: false,
-                    }));
+                        error: null,
+                    });
                 });
 
-                setState((prev) => ({ ...prev, isLoaded: true, isSimulated: false }));
+                setState(prev => ({ ...prev, isLoaded: true, isSimulated: false }));
+
             } catch (err) {
-                console.warn("Webcam/ml5 init failed — using simulation:", err);
+                console.error("Webcam Request Failed / Model Load Error:", err);
                 if (!stopped) {
-                    setState((prev) => ({
+                    setState(prev => ({
                         ...prev,
-                        error: "Webcam unavailable — modo simulado",
+                        error: "Webcam denied or failed to load. Please allow camera permissions.",
                     }));
                     startSimulation();
                 }
@@ -213,7 +194,7 @@ export function useBodyPose(
             isSimulating.current = false;
             if (videoRef.current?.srcObject) {
                 const s = videoRef.current.srcObject as MediaStream;
-                s.getTracks().forEach((t) => t.stop());
+                s.getTracks().forEach(t => t.stop());
             }
         };
     }, [startSimulation, videoRef]);

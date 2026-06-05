@@ -6,7 +6,6 @@
  *     https://codepen.io/ValenteCreativo/embed/SLUG?default-tab=result&theme-id=dark
  *   - year: año de creación
  *   - mood: controla el color del marco ("water"|"fire"|"void"|"earth"|"light")
- *   - description: texto corto que aparece en el marco (opcional)
  */
 
 export interface Work {
@@ -16,7 +15,6 @@ export interface Work {
   year: number;
   author: string;
   mood: "water" | "fire" | "void" | "earth" | "light";
-  description?: string;
 }
 
 export const works: Work[] = [
@@ -27,7 +25,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "water",
-    description: "El origen. Un punto que lo contiene todo.",
   },
   {
     title: "Segunda Dimensión",
@@ -36,7 +33,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "void",
-    description: "El plano del pensamiento y la forma.",
   },
   {
     title: "Tercera Dimensión",
@@ -45,7 +41,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "earth",
-    description: "La materia. Lo que podemos tocar.",
   },
   {
     title: "Cuarta Dimensión",
@@ -54,7 +49,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "fire",
-    description: "El tiempo como eje invisible.",
   },
   {
     title: "Quinta Dimensión",
@@ -63,7 +57,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "light",
-    description: "Todo vibra. Todo resuena.",
   },
   {
     title: "Sexta Dimensión",
@@ -72,7 +65,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "water",
-    description: "Bifurcaciones infinitas del ser.",
   },
   {
     title: "Séptima Dimensión",
@@ -81,7 +73,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "void",
-    description: "Otras realidades, otros yos.",
   },
   {
     title: "Octava Dimensión",
@@ -90,7 +81,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "fire",
-    description: "El orden dentro del caos.",
   },
   {
     title: "Frecuencia",
@@ -99,7 +89,6 @@ export const works: Work[] = [
     year: 2025,
     author: "Valentín Martínez",
     mood: "light",
-    description: "La obra maestra. Vibración pura.",
   },
   {
     title: "Realidad",
@@ -108,7 +97,6 @@ export const works: Work[] = [
     year: 2024,
     author: "Valentín Martínez",
     mood: "earth",
-    description: "El punto de llegada. La síntesis.",
   },
 ];
 
