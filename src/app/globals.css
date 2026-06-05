@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Base reset for fullscreen installation ─────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000000;
+  color: #ffffff;
+  font-family: "JetBrains Mono", monospace;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Custom scrollbar (not needed but just in case) ─────────── */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Frame pulse animation (Phase 2) ────────────────────────── */
+@keyframes framePulse {
+  0%, 100% {
+    transform: scale(1) rotate(var(--rotate, 0deg));
+    box-shadow: 0 0 10px var(--frame-color, #38bdf8);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.03) rotate(var(--rotate, 0deg));
+    box-shadow: 0 0 25px var(--frame-color, #38bdf8),
+                0 0 50px var(--frame-color, #38bdf8);
+    opacity: 0.95;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Portal glow pulse (Phase 3) ────────────────────────────── */
+@keyframes portalGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px #e879f9);
+  }
+  50% {
+    filter: drop-shadow(0 0 28px #e879f9) drop-shadow(0 0 60px #c026d3);
+  }
+}
+
+/* ── Subtle float animation for frames ──────────────────────── */
+@keyframes floatFrame {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+/* ── Text glow ──────────────────────────────────────────────── */
+@keyframes textGlow {
+  0%, 100% { text-shadow: 0 0 8px currentColor; }
+  50%       { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+}
+
+/* ── Loading pulse ──────────────────────────────────────────── */
+@keyframes loadPulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
+}
+
+.animate-pulse {
+  animation: loadPulse 1.8s ease-in-out infinite;
 }
