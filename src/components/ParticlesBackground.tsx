@@ -40,13 +40,13 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
             return {
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                baseSize: Math.random() * 2 + 1,
+                vx: (Math.random() - 0.5) * 2, // Más velocidad base
+                vy: (Math.random() - 0.5) * 2,
+                baseSize: Math.random() * 3 + 1, // Tamaño base más grande
                 size: 0,
-                alpha: Math.random() * 0.5 + 0.1,
+                alpha: Math.random() * 0.6 + 0.2,
                 life: 0,
-                maxLife: Math.random() * 200 + 100,
+                maxLife: Math.random() * 150 + 50,
             };
         };
 
@@ -61,9 +61,16 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
             const { bass, volume } = audio;
             const currentParticles = particlesRef.current;
 
-            // Add particles randomly, more with higher volume
-            if (Math.random() < volume * 0.5) {
+            // Explosión de partículas si el bajo es fuerte
+            if (bass > 0.4) {
+                for (let k = 0; k < 3; k++) currentParticles.push(createParticle());
+            } else if (Math.random() < volume * 0.5) {
                 currentParticles.push(createParticle());
+            }
+
+            // Cap elements
+            if (currentParticles.length > 500) {
+                currentParticles.splice(0, currentParticles.length - 500);
             }
 
             for (let i = currentParticles.length - 1; i >= 0; i--) {
@@ -75,12 +82,12 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
                     continue;
                 }
 
-                // Audio reactive behavior
-                p.x += p.vx * (1 + bass * 2);
-                p.y += p.vy * (1 + bass * 2);
+                // Audio reactive behavior (explosive speed)
+                p.x += p.vx * (1 + bass * 25);
+                p.y += p.vy * (1 + bass * 25);
 
-                // Audio reactive size
-                p.size = p.baseSize + (bass * 3);
+                // Audio reactive size (huge size increase)
+                p.size = p.baseSize + (bass * 20);
 
                 // Wrap around
                 if (p.x < 0) p.x = canvas.width;
@@ -90,11 +97,21 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
 
                 // Draw
                 const fade = Math.sin((p.life / p.maxLife) * Math.PI);
+                const finalAlpha = Math.min(1, p.alpha * fade + (bass * 0.6));
+
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * fade * (0.5 + volume)})`;
+
+                // Audio reactive Glow
+                ctx.shadowBlur = bass * 40;
+                ctx.shadowColor = `rgba(255, 255, 255, ${finalAlpha})`;
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
                 ctx.fill();
             }
+
+            // Reset shadow before clearing frame
+            ctx.shadowBlur = 0;
 
             reqRef.current = requestAnimationFrame(render);
         };
