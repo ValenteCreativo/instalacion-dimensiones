@@ -19,6 +19,9 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const dropsRef = useRef<CodeDrop[]>([]);
     const reqRef = useRef<number>(0);
+    // Ref para el audio — evita que el effect se re-ejecute en cada tick de audio
+    const audioRef = useRef<AudioData>(audio);
+    useEffect(() => { audioRef.current = audio; }, [audio]);
 
     useEffect(() => {
         if (phase !== 1) return;
@@ -35,85 +38,79 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
         resize();
         window.addEventListener("resize", resize);
 
-        const createDrop = (resetY: boolean = false): CodeDrop => {
-            const length = Math.floor(Math.random() * 5) + 3;
-            const chars = [];
-            for (let i = 0; i < length; i++) {
-                chars.push(DIMENSIONAL_CHARS[Math.floor(Math.random() * DIMENSIONAL_CHARS.length)]);
-            }
+        const createDrop = (resetY = false): CodeDrop => {
+            const length = Math.floor(Math.random() * 3) + 2; // 2–4 chars
+            const chars = Array.from({ length }, () =>
+                DIMENSIONAL_CHARS[Math.floor(Math.random() * DIMENSIONAL_CHARS.length)]
+            );
             return {
                 x: Math.random() * canvas.width,
-                y: resetY ? (Math.random() * -100) : Math.random() * canvas.height, // Si es nuevo comienza arriba, si no, se esparce
-                speed: Math.random() * 1.5 + 0.5,
+                y: resetY ? Math.random() * -200 : Math.random() * canvas.height,
+                speed: Math.random() * 0.3 + 0.08, // muy lento: 0.08–0.38 px/frame
                 chars,
-                fontSize: Math.floor(Math.random() * 6) + 10, // 10 a 16 px
-                alpha: Math.random() * 0.3 + 0.05,
+                fontSize: Math.floor(Math.random() * 4) + 7, // 7–10px
+                alpha: Math.random() * 0.12 + 0.04, // muy tenue: 0.04–0.16
                 glitchPhase: Math.random() * Math.PI * 2,
             };
         };
 
-        // Initialize 100 drops
-        for (let i = 0; i < 150; i++) {
-            dropsRef.current.push(createDrop(false));
-        }
+        // 28 drops — presencia discreta, no invasiva
+        dropsRef.current = Array.from({ length: 28 }, () => createDrop(false));
 
         const render = () => {
-            // Fondo ligeramente negro para crear "trail" (motion blur sutil)
-            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            // Trail largo → los caracteres se desvanecen suavemente, no se acumulan
+            ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const { bass, volume } = audio;
-            const currentDrops = dropsRef.current;
+            const { bass } = audioRef.current;
 
-            // Audio reaction
-            const isGlitchy = bass > 0.4;
-            const theGlow = bass * 15;
-
-            ctx.shadowBlur = theGlow;
-            ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+            // Glow muy sutil — solo un leve halo en beats fuertes
+            ctx.shadowBlur = bass > 0.5 ? bass * 8 : 0;
+            ctx.shadowColor = "rgba(200, 200, 255, 0.3)";
             ctx.textAlign = "center";
 
-            for (let i = 0; i < currentDrops.length; i++) {
-                const drop = currentDrops[i];
+            for (let i = 0; i < dropsRef.current.length; i++) {
+                const drop = dropsRef.current[i];
 
-                drop.y += drop.speed * (1 + bass); // cae ligeramente más rápido con el beat
+                // Bass acelera muy levemente la caída (máx +30%)
+                drop.y += drop.speed * (1 + bass * 0.3);
 
-                // Reiniciar si pasa del borde
-                if (drop.y - (drop.chars.length * drop.fontSize) > canvas.height) {
-                    currentDrops[i] = createDrop(true);
+                if (drop.y - drop.chars.length * drop.fontSize > canvas.height) {
+                    dropsRef.current[i] = createDrop(true);
                     continue;
                 }
 
-                drop.glitchPhase += 0.1;
+                drop.glitchPhase += 0.08;
 
                 ctx.font = `300 ${drop.fontSize}px 'JetBrains Mono', monospace`;
 
-                // Dibujar caracteres en columna
                 for (let c = 0; c < drop.chars.length; c++) {
-                    const charY = drop.y - (c * drop.fontSize); // el primer char es el de más abajo (cabeza), los siguientes están arriba (cola)
+                    const charY = drop.y - c * drop.fontSize;
 
                     let charX = drop.x;
-                    // Efecto glitch audioreactivo
-                    if (isGlitchy && Math.sin(drop.glitchPhase + c) > 0.8) {
-                        charX += (Math.random() - 0.5) * 10;
-                        // Ocasionalmente cambiar letra en el glitch
-                        if (Math.random() < 0.1) {
-                            drop.chars[c] = DIMENSIONAL_CHARS[Math.floor(Math.random() * DIMENSIONAL_CHARS.length)];
+                    // Glitch muy ocasional — solo si bass es alto y la prob es baja
+                    if (bass > 0.55 && Math.sin(drop.glitchPhase + c) > 0.92) {
+                        charX += (Math.random() - 0.5) * 6;
+                        if (Math.random() < 0.06) {
+                            drop.chars[c] = DIMENSIONAL_CHARS[
+                                Math.floor(Math.random() * DIMENSIONAL_CHARS.length)
+                            ];
                         }
                     }
 
-                    // La letra cabeza (c=0) es la más brillante, la cola se va haciendo opaca
-                    const headBoost = c === 0 ? 0.3 : 0;
-                    const charAlpha = Math.max(0.01, drop.alpha - (c * 0.05) + headBoost + (bass * 0.2));
+                    // Cabeza ligeramente más visible, cola se desvanece rápido
+                    const headBoost = c === 0 ? 0.08 : 0;
+                    const charAlpha = Math.max(
+                        0.01,
+                        drop.alpha - c * 0.04 + headBoost + bass * 0.06
+                    );
 
-                    ctx.fillStyle = `rgba(255, 255, 255, ${charAlpha})`;
+                    ctx.fillStyle = `rgba(220, 220, 255, ${charAlpha})`;
                     ctx.fillText(drop.chars[c], charX, charY);
                 }
             }
 
-            // Restore shadow
             ctx.shadowBlur = 0;
-
             reqRef.current = requestAnimationFrame(render);
         };
 
@@ -124,7 +121,8 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
             cancelAnimationFrame(reqRef.current);
             dropsRef.current = [];
         };
-    }, [audio, phase]);
+    // Solo depende de phase — audio se lee via ref
+    }, [phase]);
 
     if (phase !== 1) return null;
 
@@ -132,7 +130,7 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
         <canvas
             ref={canvasRef}
             className="absolute inset-0 z-0 pointer-events-none"
-            style={{ opacity: 0.7 }}
+            style={{ opacity: 0.5 }}
         />
     );
 }
