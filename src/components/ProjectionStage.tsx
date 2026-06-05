@@ -3,23 +3,25 @@
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useBodyPose } from "@/hooks/useBodyPose";
+import { useAudioReactive } from "@/hooks/useAudioReactive";
 import { Phase } from "./BodyPortal";
 import PhaseControls from "./PhaseControls";
 import PortalGallery from "./PortalGallery";
+import GalleryShowcase from "./GalleryShowcase";
 import { works } from "@/data/works";
 
 // Dynamically import BodyPortal to avoid SSR issues with canvas
 const BodyPortal = dynamic(() => import("./BodyPortal"), { ssr: false });
 
 const PHASE_LABELS: Record<Phase, string> = {
-    1: "Apertura · Poesía",
-    2: "Set Electrónico",
-    3: "Jamboteo Final",
-    4: "Gallery · Rest",
+    1: "Exposición Global",
+    2: "Ruptura del Portal",
+    3: "Set Electrónico",
+    4: "Caleidoscopio",
 };
 
 const PHASE_COLORS: Record<Phase, string> = {
-    1: "#7dd3fc",
+    1: "#ffffff",
     2: "#34d399",
     3: "#e879f9",
     4: "#94a3b8",
@@ -36,10 +38,8 @@ export default function ProjectionStage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const { keypoints, isLoaded, isSimulated, error } = useBodyPose(
-        videoRef,
-        canvasRef
-    );
+    const { keypoints, connections, isLoaded, isSimulated, error } = useBodyPose(videoRef);
+    const audio = useAudioReactive();
 
     // Track screen dimensions for canvas
     useEffect(() => {
@@ -57,6 +57,7 @@ export default function ProjectionStage() {
     }, []);
 
     const phaseColor = PHASE_COLORS[phase];
+    const activeWork = works[activeWorkIndex];
 
     return (
         <div
@@ -73,81 +74,42 @@ export default function ProjectionStage() {
                 playsInline
             />
 
-            {/* Portal canvas — full stage */}
-            <div className="absolute inset-0 z-0 flex items-center justify-center">
-                {/* Organic oval portal mask */}
+            {/* Obra Principal: Showcase (Fase 1 la hace central, el resto la encoge) */}
+            <GalleryShowcase work={activeWork} visible={galleryVisible} phase={phase} />
+
+            {/* Portal canvas — Body Pose Overlay */}
+            {/* El body pose solo es totalmente visible en las fases 2, 3, 4 */}
+            <div
+                className="absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-1000"
+                style={{ opacity: phase === 1 ? 0.05 : 1 }}
+            >
                 <div
                     className="relative"
-                    style={{
-                        width: "58vw",
-                        height: "90vh",
-                        clipPath: "ellipse(49% 48% at 50% 50%)",
-                    }}
+                    style={{ width: "100%", height: "100%" }}
                 >
-                    {/* Subtle background gradient inside portal */}
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            background: `radial-gradient(ellipse at 50% 40%, rgba(${phase === 1 ? "56,189,248" : phase === 2 ? "52,211,153" : phase === 3 ? "232,121,249" : "100,116,139"
-                                },0.06) 0%, transparent 70%)`,
-                            transition: "background 1.5s ease",
-                        }}
-                    />
                     <BodyPortal
                         keypoints={keypoints}
+                        connections={connections}
                         phase={phase}
                         mirrored={mirrored}
+                        audio={audio}
                         width={dimensions.w}
                         height={dimensions.h}
                     />
                 </div>
             </div>
 
-            {/* Portal border ring — decorative oval around the portal area */}
+            {/* Gallery frames: Obras secundarias flotando alrededor (fase 2, 3, 4) */}
             <div
-                className="absolute inset-0 z-[5] pointer-events-none flex items-center justify-center"
+                className="transition-opacity duration-1000 z-[5]"
+                style={{ opacity: phase === 1 ? 0 : 1 }}
             >
-                <svg
-                    viewBox="0 0 100 100"
-                    className="absolute"
-                    style={{
-                        width: "60vw",
-                        height: "92vh",
-                        filter: `drop-shadow(0 0 12px ${phaseColor})`,
-                        transition: "filter 1.5s ease",
-                    }}
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <ellipse
-                        cx="50"
-                        cy="50"
-                        rx="49"
-                        ry="48"
-                        fill="none"
-                        stroke={phaseColor}
-                        strokeWidth="0.4"
-                        opacity="0.45"
-                    />
-                    <ellipse
-                        cx="50"
-                        cy="50"
-                        rx="48"
-                        ry="47"
-                        fill="none"
-                        stroke={phaseColor}
-                        strokeWidth="0.15"
-                        opacity="0.2"
-                        strokeDasharray="2,3"
-                    />
-                </svg>
+                <PortalGallery
+                    visible={galleryVisible}
+                    phase={phase}
+                    activeWorkIndex={activeWorkIndex}
+                />
             </div>
-
-            {/* Gallery frames */}
-            <PortalGallery
-                visible={galleryVisible}
-                phase={phase}
-                activeWorkIndex={activeWorkIndex}
-            />
 
             {/* Keyboard controls */}
             <PhaseControls
@@ -164,108 +126,127 @@ export default function ProjectionStage() {
                 totalWorks={works.length}
             />
 
-            {/* Phase indicator — bottom center */}
-            <div
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 text-center"
-                style={{ transition: "color 1s ease", color: phaseColor }}
-            >
+            {/* Controles y UI Overlay ────────────────────────────────────── */}
+            <div className="absolute inset-0 z-30 pointer-events-none">
+
+                {/* Phase indicator — bottom center */}
                 <div
-                    className="text-xs uppercase tracking-[0.25em] opacity-60"
-                    style={{ fontSize: "9px" }}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center"
+                    style={{ transition: "color 1s ease", color: phaseColor }}
                 >
-                    {PHASE_LABELS[phase]}
+                    <div className="text-xs uppercase tracking-[0.3em] opacity-80" style={{ fontSize: "10px" }}>
+                        {PHASE_LABELS[phase]}
+                    </div>
+                    <div className="flex gap-3 mt-2 justify-center">
+                        {([1, 2, 3, 4] as Phase[]).map((p) => (
+                            <div
+                                key={p}
+                                className="rounded-full transition-all duration-500"
+                                style={{
+                                    width: p === phase ? "20px" : "8px",
+                                    height: "4px",
+                                    background: p === phase ? phaseColor : "rgba(255,255,255,0.15)",
+                                }}
+                            />
+                        ))}
+                    </div>
                 </div>
-                <div className="flex gap-2 mt-1 justify-center">
-                    {([1, 2, 3, 4] as Phase[]).map((p) => (
+
+                {/* Status pill & Mic Indicator — top left */}
+                <div className="absolute top-6 left-6 flex flex-col gap-2">
+                    {isSimulated && (
                         <div
-                            key={p}
-                            className="rounded-full transition-all duration-500"
-                            style={{
-                                width: p === phase ? "16px" : "6px",
-                                height: "4px",
-                                background: p === phase ? phaseColor : "rgba(255,255,255,0.2)",
-                            }}
-                        />
-                    ))}
+                            className="text-[10px] uppercase tracking-widest opacity-60 px-2 py-1 border rounded"
+                            style={{ borderColor: "rgba(255,255,255,0.15)", color: "#94a3b8" }}
+                        >
+                            Modo Simulado
+                        </div>
+                    )}
+                    {error && (
+                        <div className="text-[10px] opacity-40 px-2 py-1 text-red-300">
+                            {error}
+                        </div>
+                    )}
+                    {mirrored && (
+                        <div
+                            className="text-[10px] uppercase tracking-widest opacity-60 px-2 py-1 border rounded"
+                            style={{ borderColor: "rgba(255,255,255,0.15)", color: "#94a3b8" }}
+                        >
+                            Espejo ↔
+                        </div>
+                    )}
+                    {audio.isActive ? (
+                        <div className="flex items-center gap-2 mt-2 px-2">
+                            <div
+                                className="w-2 h-2 rounded-full bg-green-400 transition-all duration-75"
+                                style={{ transform: `scale(${1 + audio.volume * 2})`, opacity: 0.5 + audio.volume * 0.5 }}
+                            />
+                            <span className="text-[9px] uppercase tracking-widest text-green-400 opacity-60">MIC ACTIVE</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 mt-2 px-2">
+                            <div className="w-2 h-2 rounded-full bg-red-400 opacity-30" />
+                            <span className="text-[9px] uppercase tracking-widest text-red-300 opacity-40">MIC OFF</span>
+                        </div>
+                    )}
                 </div>
-            </div>
 
-            {/* Status pill — top left */}
-            <div className="absolute top-4 left-4 z-30 flex flex-col gap-1">
-                {isSimulated && (
+                {/* Title — top center */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center shadow-lg">
                     <div
-                        className="text-[9px] uppercase tracking-widest opacity-40 px-2 py-0.5 border rounded"
-                        style={{ borderColor: "rgba(255,255,255,0.15)", color: "#94a3b8" }}
+                        className="text-[11px] uppercase tracking-[0.5em]"
+                        style={{ color: `rgba(255,255,255,0.5)`, letterSpacing: "0.4em" }}
                     >
-                        Modo Simulado
+                        Dimensiones Jamboteo
                     </div>
-                )}
-                {error && (
-                    <div
-                        className="text-[9px] opacity-30 px-2 py-0.5 "
-                        style={{ color: "#94a3b8" }}
-                    >
-                        {error}
-                    </div>
-                )}
-                {mirrored && (
-                    <div
-                        className="text-[9px] uppercase tracking-widest opacity-40 px-2 py-0.5 border rounded"
-                        style={{ borderColor: "rgba(255,255,255,0.15)", color: "#94a3b8" }}
-                    >
-                        Espejo ↔
-                    </div>
-                )}
-            </div>
+                </div>
 
-            {/* Title — top center */}
-            <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none">
-                <div
-                    className="text-[10px] uppercase tracking-[0.4em]"
-                    style={{ color: `${phaseColor}80`, letterSpacing: "0.35em" }}
-                >
-                    Dimensiones Jamboteo
+                {/* Artista y Navegación — bottom right */}
+                <div className="absolute bottom-6 right-6 text-right opacity-40 hover:opacity-100 transition-opacity">
+                    <div className="text-[10px] uppercase tracking-[0.2em] mb-1">Galería de Dimensiones</div>
+                    <div className="text-[9px] font-mono tracking-widest">[{activeWorkIndex + 1} / {works.length}]</div>
                 </div>
             </div>
 
             {/* Help overlay */}
             <div
-                className="absolute inset-0 z-40 flex items-end justify-center pb-16 pointer-events-none transition-opacity duration-700"
+                className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none transition-opacity duration-700 bg-black/40 backdrop-blur-sm"
                 style={{ opacity: helpVisible ? 1 : 0 }}
             >
                 <div
-                    className="rounded-xl px-6 py-4 text-[10px] uppercase tracking-widest grid grid-cols-2 gap-x-8 gap-y-1"
+                    className="rounded-xl px-10 py-8 text-[11px] uppercase tracking-widest grid grid-cols-2 gap-x-12 gap-y-3"
                     style={{
-                        background: "rgba(0,0,0,0.75)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.45)",
+                        background: "rgba(10,10,10,0.85)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        color: "rgba(255,255,255,0.5)",
+                        boxShadow: "0 0 50px rgba(0,0,0,0.5)"
                     }}
                 >
                     <span><span className="text-white">1 2 3 4</span> · Fases</span>
-                    <span><span className="text-white">Espacio</span> · Siguiente fase</span>
-                    <span><span className="text-white">← →</span> · Obra anterior/siguiente</span>
-                    <span><span className="text-white">F</span> · Pantalla completa</span>
-                    <span><span className="text-white">M</span> · Espejo</span>
-                    <span><span className="text-white">G</span> · Galería show/hide</span>
-                    <span><span className="text-white">H</span> · Esta ayuda</span>
+                    <span><span className="text-white">Espacio</span> · Siguiente Fase</span>
+                    <span><span className="text-white">← →</span> · Navegar Obras</span>
+                    <span><span className="text-white">F</span> · Pantalla Completa</span>
+                    <span><span className="text-white">M</span> · Modo Espejo</span>
+                    <span><span className="text-white">G</span> · Ocultar Obras</span>
+                    <span className="col-span-2 text-center mt-4"><span className="text-white">H</span> · Cerrar Ayuda</span>
                 </div>
             </div>
 
             {/* Loading state */}
             {!isLoaded && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black">
                     <div className="text-center">
                         <div
                             className="text-sm uppercase tracking-[0.4em] animate-pulse"
-                            style={{ color: "#38bdf8" }}
+                            style={{ color: "#ffffff" }}
                         >
-                            Iniciando portal…
+                            Cargando Portal...
                         </div>
                         <div
-                            className="mt-2 text-[9px] uppercase tracking-widest opacity-40"
+                            className="mt-3 text-[10px] uppercase tracking-widest opacity-40"
                             style={{ color: "#94a3b8" }}
                         >
-                            Dimensiones Jamboteo
+                            Conectando cámara y micrófono
                         </div>
                     </div>
                 </div>

@@ -1,43 +1,114 @@
 /**
- * DIMENSIONES — Works Data
- * Add your CodePen "full embed" URLs here.
- * Format: https://codepen.io/YOUR_USERNAME/full/XXXXX
+ * DIMENSIONES JAMBOTEO — Obras de Valentín Martínez
  *
- * Each work will appear as a floating framed "dimension" around the body portal.
- * The `mood` field influences the frame glow color:
- *   "water"  → cyan
- *   "fire"   → orange-red
- *   "void"   → violet-purple
- *   "earth"  → green-teal
- *   "light"  → white-gold
+ * Cómo agregar o editar obras:
+ *   - url: usa el formato embed de CodePen:
+ *     https://codepen.io/ValenteCreativo/embed/SLUG?default-tab=result&theme-id=dark
+ *   - year: año de creación
+ *   - mood: controla el color del marco ("water"|"fire"|"void"|"earth"|"light")
+ *   - description: texto corto que aparece en el marco (opcional)
  */
 
 export interface Work {
   title: string;
+  subtitle: string;
   url: string;
+  year: number;
+  author: string;
   mood: "water" | "fire" | "void" | "earth" | "light";
+  description?: string;
 }
 
 export const works: Work[] = [
   {
-    title: "Dimensión I",
-    url: "https://codepen.io/USER/full/XXXXX", // ← Replace with your CodePen URL
+    title: "Primera Dimensión",
+    subtitle: "Singularidad y Flujo",
+    url: "https://codepen.io/ValenteCreativo/embed/jOjKbVK?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
     mood: "water",
+    description: "El origen. Un punto que lo contiene todo.",
   },
   {
-    title: "Dimensión II",
-    url: "https://codepen.io/USER/full/YYYYY", // ← Replace with your CodePen URL
-    mood: "fire",
-  },
-  {
-    title: "Dimensión III",
-    url: "https://codepen.io/USER/full/ZZZZZ", // ← Replace with your CodePen URL
+    title: "Segunda Dimensión",
+    subtitle: "Reino Mental",
+    url: "https://codepen.io/ValenteCreativo/embed/yLdEYVR?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
     mood: "void",
+    description: "El plano del pensamiento y la forma.",
   },
   {
-    title: "Dimensión IV",
-    url: "https://codepen.io/USER/full/AAAAA", // ← Replace with your CodePen URL
+    title: "Tercera Dimensión",
+    subtitle: "Mundo Físico",
+    url: "https://codepen.io/ValenteCreativo/embed/NWZzGXz?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
     mood: "earth",
+    description: "La materia. Lo que podemos tocar.",
+  },
+  {
+    title: "Cuarta Dimensión",
+    subtitle: "Espacio-Tiempo",
+    url: "https://codepen.io/ValenteCreativo/embed/NWZzGzB?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "fire",
+    description: "El tiempo como eje invisible.",
+  },
+  {
+    title: "Quinta Dimensión",
+    subtitle: "Vibración y Energía",
+    url: "https://codepen.io/ValenteCreativo/embed/PoraPbj?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "light",
+    description: "Todo vibra. Todo resuena.",
+  },
+  {
+    title: "Sexta Dimensión",
+    subtitle: "Posibilidades",
+    url: "https://codepen.io/ValenteCreativo/embed/yLdEYEw?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "water",
+    description: "Bifurcaciones infinitas del ser.",
+  },
+  {
+    title: "Séptima Dimensión",
+    subtitle: "Universos Paralelos",
+    url: "https://codepen.io/ValenteCreativo/embed/bGPKeaM?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "void",
+    description: "Otras realidades, otros yos.",
+  },
+  {
+    title: "Octava Dimensión",
+    subtitle: "Armonía y Caos",
+    url: "https://codepen.io/ValenteCreativo/embed/dPyNyKe?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "fire",
+    description: "El orden dentro del caos.",
+  },
+  {
+    title: "Frecuencia",
+    subtitle: "",
+    url: "https://codepen.io/ValenteCreativo/embed/bNdBbRr?default-tab=result&theme-id=dark",
+    year: 2025,
+    author: "Valentín Martínez",
+    mood: "light",
+    description: "La obra maestra. Vibración pura.",
+  },
+  {
+    title: "Realidad",
+    subtitle: "",
+    url: "https://codepen.io/ValenteCreativo/embed/NWZexVy?default-tab=result&theme-id=dark",
+    year: 2024,
+    author: "Valentín Martínez",
+    mood: "earth",
+    description: "El punto de llegada. La síntesis.",
   },
 ];
 
