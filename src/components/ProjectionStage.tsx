@@ -6,6 +6,7 @@ import { useBodyPose } from "@/hooks/useBodyPose";
 import { useAudioReactive } from "@/hooks/useAudioReactive";
 import { Phase } from "./BodyPortal";
 import ArtworkGallery from "./ArtworkGallery";
+import ParticlesBackground from "./ParticlesBackground";
 import { works } from "@/data/works";
 
 // Dynamically import BodyPortal
@@ -106,6 +107,9 @@ export default function ProjectionStage() {
                 playsInline
             />
 
+            {/* ART PARTICLES (Fases 1 y 2) */}
+            <ParticlesBackground audio={audio} phase={phase} />
+
             {/* GALERÍA DE ARTE VISUAL (Fases 1 y 2) */}
             <div
                 className="absolute inset-0 transition-opacity duration-1000 z-10"
@@ -139,18 +143,20 @@ export default function ProjectionStage() {
                 </div>
             </div>
 
-            {/* MARCA DE AGUA (Visible en todas las fases, más pequeña) */}
-            <div
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none opacity-60"
-            >
+            {/* MARCA DE AGUA (Visible en fase 1 y 3. Esquina inferior derecha) */}
+            {(phase === 1 || phase === 3) && (
                 <div
-                    className="text-sm md:text-lg text-white font-mono tracking-widest uppercase flex gap-8"
-                    style={{ textShadow: "0 0 10px rgba(255,255,255,0.3)" }}
+                    className="absolute bottom-6 right-6 z-40 pointer-events-none opacity-60 text-right"
                 >
-                    <span>@amitla.mx</span>
-                    <span>@ValeCreativo</span>
+                    <div
+                        className="text-sm md:text-md text-white font-mono tracking-widest uppercase flex flex-col gap-1"
+                        style={{ textShadow: "0 0 10px rgba(255,255,255,0.3)" }}
+                    >
+                        <span>@amitla.mx</span>
+                        <span>@ValeCreativo</span>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

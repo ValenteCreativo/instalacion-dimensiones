@@ -42,8 +42,7 @@ export default function ArtworkGallery({ activeWorkIndex, phase, audio }: Artwor
                     // --- FASE 1: Showcase ---
                     // Opacidad y escalado. Absoluto en el centro.
                     const soloOpacity = isActive ? 1 : 0;
-                    const scaleOffset = isActive ? audio.bass * 0.05 : 0;
-                    const soloTransform = isActive ? `scale(${1 + scaleOffset})` : "scale(0.8) translateY(20px)";
+                    const soloTransform = isActive ? `scale(1)` : "scale(0.8) translateY(20px)";
                     const soloZ = isActive ? 10 : 0;
                     const soloLayout = {
                         width: "65vw",
@@ -53,7 +52,7 @@ export default function ArtworkGallery({ activeWorkIndex, phase, audio }: Artwor
 
                     // --- FASE 2: Muro de Museo ---
                     const museumOpacity = 1;
-                    const museumTransform = `scale(${1 + audio.volume * 0.05})`;
+                    const museumTransform = `scale(1)`;
                     const museumLayout = MUSEUM_SLOTS[index % MUSEUM_SLOTS.length];
                     const museumZ = index;
 
@@ -102,17 +101,17 @@ export default function ArtworkGallery({ activeWorkIndex, phase, audio }: Artwor
 
                             {/* Textos debajo de la obra */}
                             <div
-                                className={`text-center transition-all duration-1000 ${isSoloShowcase ? 'absolute -bottom-24 w-full' : 'absolute -bottom-8 w-full'}`}
+                                className={`text-center transition-all duration-1000 ${isSoloShowcase ? 'absolute -bottom-20 w-full' : 'absolute -bottom-6 w-full'}`}
                                 style={{ opacity: isActive || isMuseum ? 1 : 0 }}
                             >
                                 <h2
-                                    className={`${isSoloShowcase ? 'text-2xl md:text-3xl' : 'text-[10px] truncate px-2'} font-light tracking-[0.2em] uppercase mb-1 drop-shadow-md`}
+                                    className={`${isSoloShowcase ? 'text-xl md:text-2xl' : 'text-[8px] truncate px-2'} font-light tracking-[0.2em] uppercase mb-1 drop-shadow-md`}
                                     style={{ color: "#fff" }}
                                 >
                                     {work.title}{work.subtitle ? `: ${work.subtitle}` : ""}
                                 </h2>
                                 <div
-                                    className={`${isSoloShowcase ? 'text-sm md:text-md mb-4' : 'text-[8px] truncate'} tracking-[0.15em] opacity-60 font-mono`}
+                                    className={`${isSoloShowcase ? 'text-sm mb-4' : 'text-[6px] truncate'} tracking-[0.15em] opacity-60 font-mono`}
                                     style={{ color: isSoloShowcase ? color : "#ccc" }}
                                 >
                                     {work.author} &middot; {work.year}
