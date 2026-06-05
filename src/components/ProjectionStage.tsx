@@ -75,17 +75,21 @@ export default function ProjectionStage() {
         return () => window.removeEventListener("keydown", handleKey);
     }, [phase, mirrored, galleryVisible, activeWorkIndex]);
 
-    // 30 seconds auto-changer logic
+    // Dynamic auto-changer logic
     useEffect(() => {
         // Solo rotar auto-mágicamente en la Fase 1
         if (phase !== 1) return;
 
-        const interval = setInterval(() => {
-            setActiveWorkIndex(prev => (prev + 1) % works.length);
-        }, 30000); // 30 seconds
+        const currentWork = works[activeWorkIndex];
+        const isRealidad = currentWork.title.toLowerCase() === "realidad";
+        const duration = isRealidad ? 90000 : 45000;
 
-        return () => clearInterval(interval);
-    }, [phase]);
+        const timeout = setTimeout(() => {
+            setActiveWorkIndex(prev => (prev + 1) % works.length);
+        }, duration);
+
+        return () => clearTimeout(timeout);
+    }, [phase, activeWorkIndex]);
 
     // Fase 1: Showcase Individual
     // Fase 2: Museo (Todas las obras, diseño estático)
@@ -98,10 +102,12 @@ export default function ProjectionStage() {
             className="relative w-screen h-screen overflow-hidden bg-black"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
         >
+            {/* Video must have real dimensions so ml5 can read videoWidth/videoHeight correctly.
+                It's visually hidden but NOT size 0 — that breaks keypoint normalization. */}
             <video
                 ref={videoRef}
-                className="absolute opacity-0 pointer-events-none"
-                style={{ width: 1, height: 1 }}
+                className="absolute pointer-events-none"
+                style={{ width: 640, height: 480, opacity: 0, top: -9999, left: -9999, position: "absolute" }}
                 autoPlay
                 muted
                 playsInline

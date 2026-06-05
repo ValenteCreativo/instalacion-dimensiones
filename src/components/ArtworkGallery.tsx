@@ -26,11 +26,12 @@ const MUSEUM_SLOTS = [
 ];
 
 export default function ArtworkGallery({ activeWorkIndex, phase, audio }: ArtworkGalleryProps) {
-    // Solo se muestra en Fase 1 y Fase 2
-    if (phase > 2) return null;
-
     const isSoloShowcase = phase === 1; // Fase 1: Showcase central enorme
     const isMuseum = phase === 2;       // Fase 2: Muro de museo estético
+
+    // En Fase 3 el contenedor padre lo pondrá en opacity 0,
+    // pero internamente usaremos visibility: hidden para pausar los iframes y ahorrar recursos.
+    const isHiddenPhase = phase > 2;
 
     return (
         <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
@@ -61,14 +62,22 @@ export default function ArtworkGallery({ activeWorkIndex, phase, audio }: Artwor
                     const zIndex = isSoloShowcase ? soloZ : museumZ;
                     const layout = isSoloShowcase ? soloLayout : museumLayout;
 
+                    // Técnica clave de optimización:
+                    // En Fase 1 (Showcase), solo renderizamos el activo. Los demás se pausan con visibility: hidden.
+                    // En Fase 2 (Museo), todos son visibles.
+                    // En Fase 3 (Jamboteo), TODOS están visibility: hidden para 0% uso de CPU.
+                    const isVisible = isHiddenPhase ? false : (isSoloShowcase ? isActive : true);
+
                     return (
                         <div
                             key={work.title}
-                            className="absolute transition-all duration-[1200ms] ease-[cubic-bezier(0.2,1,0.2,1)]"
+                            className={`absolute transition-all duration-[1200ms] ease-[cubic-bezier(0.2,1,0.2,1)]`}
                             style={{
                                 opacity,
                                 transform,
                                 zIndex,
+                                visibility: isVisible ? "visible" : "hidden",
+                                willChange: "transform, opacity",
                                 ...layout,
                                 ...(isSoloShowcase && !isActive ? { pointerEvents: "none" } : {})
                             }}
@@ -91,10 +100,9 @@ export default function ArtworkGallery({ activeWorkIndex, phase, audio }: Artwor
                                         pointerEvents: "none",
                                         width: "200%",
                                         height: "200%",
-                                        transform: "scale(0.5)",
-                                        transformOrigin: "top left"
+                                        transform: "scale(0.5) translateZ(0)",
+                                        transformOrigin: "top left",
                                     }}
-                                    loading="lazy"
                                     sandbox="allow-scripts allow-same-origin allow-popups"
                                 />
                             </div>
