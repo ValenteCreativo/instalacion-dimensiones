@@ -1,37 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useBodyPose } from "@/hooks/useBodyPose";
 import { useAudioReactive } from "@/hooks/useAudioReactive";
 import { Phase } from "./BodyPortal";
 import ArtworkGallery from "./ArtworkGallery";
 import ParticlesBackground from "./ParticlesBackground";
 import { works } from "@/data/works";
 
-// Dynamically import BodyPortal
-const BodyPortal = dynamic(() => import("./BodyPortal"), { ssr: false });
+// Dynamically imported to avoid SSR issues
+const BodyPoseSketch = dynamic(() => import("./BodyPoseSketch"), { ssr: false });
 
 export default function ProjectionStage() {
     const [phase, setPhase] = useState<Phase>(1);
     const [mirrored, setMirrored] = useState(false);
     const [galleryVisible, setGalleryVisible] = useState(true);
     const [activeWorkIndex, setActiveWorkIndex] = useState(0);
-    const [dimensions, setDimensions] = useState({ w: 1280, h: 720 });
 
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    const { keypoints, connections } = useBodyPose(videoRef);
     const audio = useAudioReactive();
-
-    // Screen dimensions resize
-    useEffect(() => {
-        const update = () => setDimensions({ w: window.innerWidth, h: window.innerHeight });
-        update();
-        window.addEventListener("resize", update);
-        return () => window.removeEventListener("resize", update);
-    }, []);
 
     // Keyboard Navigation
     useEffect(() => {
@@ -40,18 +26,17 @@ export default function ProjectionStage() {
                 case "1": setPhase(1); break;
                 case "2": setPhase(2); break;
                 case "3": setPhase(3); break;
-                // Solo 3 fases para la V3.
                 case " ":
                     e.preventDefault();
-                    setPhase(((phase % 3) + 1) as Phase);
+                    setPhase(prev => ((prev % 3) + 1) as Phase);
                     break;
                 case "ArrowRight":
                     e.preventDefault();
-                    setActiveWorkIndex((activeWorkIndex + 1) % works.length);
+                    setActiveWorkIndex(prev => (prev + 1) % works.length);
                     break;
                 case "ArrowLeft":
                     e.preventDefault();
-                    setActiveWorkIndex((activeWorkIndex - 1 + works.length) % works.length);
+                    setActiveWorkIndex(prev => (prev - 1 + works.length) % works.length);
                     break;
                 case "f":
                 case "F":
@@ -63,37 +48,26 @@ export default function ProjectionStage() {
                     break;
                 case "m":
                 case "M":
-                    setMirrored(!mirrored);
+                    setMirrored(prev => !prev);
                     break;
                 case "g":
                 case "G":
-                    setGalleryVisible(!galleryVisible);
+                    setGalleryVisible(prev => !prev);
                     break;
             }
         };
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
-    }, [phase, mirrored, galleryVisible, activeWorkIndex]);
+    }, []);
 
-    // Dynamic auto-changer logic
+    // Auto-rotate works in Phase 1
     useEffect(() => {
-        // Solo rotar auto-mágicamente en la Fase 1
         if (phase !== 1) return;
-
-        const currentWork = works[activeWorkIndex];
-        const isRealidad = currentWork.title.toLowerCase() === "realidad";
-        const duration = isRealidad ? 90000 : 45000;
-
         const timeout = setTimeout(() => {
             setActiveWorkIndex(prev => (prev + 1) % works.length);
-        }, duration);
-
+        }, 30000);
         return () => clearTimeout(timeout);
     }, [phase, activeWorkIndex]);
-
-    // Fase 1: Showcase Individual
-    // Fase 2: Museo (Todas las obras, diseño estático)
-    // Fase 3: BodyPose Portal interactivo sin marcos.
 
     const isPortalPhase = phase === 3;
 
@@ -102,24 +76,13 @@ export default function ProjectionStage() {
             className="relative w-screen h-screen overflow-hidden bg-black"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
         >
-            {/* Video must have real dimensions so ml5 can read videoWidth/videoHeight correctly.
-                It's visually hidden but NOT size 0 — that breaks keypoint normalization. */}
-            <video
-                ref={videoRef}
-                className="absolute pointer-events-none"
-                style={{ width: 640, height: 480, opacity: 0, top: -9999, left: -9999, position: "absolute" }}
-                autoPlay
-                muted
-                playsInline
-            />
-
             {/* ART PARTICLES (Fases 1 y 2) */}
             <ParticlesBackground audio={audio} phase={phase} />
 
             {/* GALERÍA DE ARTE VISUAL (Fases 1 y 2) */}
             <div
                 className="absolute inset-0 transition-opacity duration-1000 z-10"
-                style={{ opacity: isPortalPhase ? 0 : 1 }}
+                style={{ opacity: isPortalPhase ? 0 : 1, pointerEvents: isPortalPhase ? "none" : "auto" }}
             >
                 <ArtworkGallery
                     activeWorkIndex={activeWorkIndex}
@@ -128,34 +91,24 @@ export default function ProjectionStage() {
                 />
             </div>
 
-            {/* EXPERIENCIA PORTAL BODYPOSE (Fase 3) */}
+            {/* FASE 3: BodyPose Portal — p5 + ml5 sketch, self-contained */}
             <div
-                className="absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-1000"
-                style={{ opacity: isPortalPhase ? 1 : 0 }}
+                className="absolute inset-0 z-20 transition-opacity duration-1000"
+                style={{ opacity: isPortalPhase ? 1 : 0, pointerEvents: isPortalPhase ? "auto" : "none" }}
             >
-                <div className="relative" style={{ width: "100%", height: "100%" }}>
-                    {isPortalPhase && (
-                        <BodyPortal
-                            keypoints={keypoints}
-                            connections={connections}
-                            // Pasamos fase 3 real para los visuales reactivos (jamboteo final)
-                            phase={3}
-                            mirrored={mirrored}
-                            audio={audio}
-                            width={dimensions.w}
-                            height={dimensions.h}
-                        />
-                    )}
-                </div>
+                {/* Keep mounted so p5/ml5 don't restart on phase switch */}
+                <BodyPoseSketch
+                    audio={audio}
+                    mirrored={mirrored}
+                    active={isPortalPhase}
+                />
             </div>
 
-            {/* MARCA DE AGUA (Visible en fase 1 y 3. Esquina inferior derecha) */}
+            {/* MARCA DE AGUA (Fase 1 y 3) */}
             {(phase === 1 || phase === 3) && (
-                <div
-                    className="absolute bottom-6 right-6 z-40 pointer-events-none opacity-60 text-right"
-                >
+                <div className="absolute bottom-6 right-6 z-40 pointer-events-none opacity-60 text-right">
                     <div
-                        className="text-sm md:text-md text-white font-mono tracking-widest uppercase flex flex-col gap-1"
+                        className="text-sm text-white font-mono tracking-widest uppercase flex flex-col gap-1"
                         style={{ textShadow: "0 0 10px rgba(255,255,255,0.3)" }}
                     >
                         <span>@amitla.mx</span>

@@ -23,8 +23,12 @@ export default function RootLayout({
       </head>
       <body className="bg-black overflow-hidden w-screen h-screen m-0 p-0">
         {children}
-        {/* ml5.js loaded after page is interactive — afterInteractive ensures
-            window is available and prevents SSR issues */}
+        {/* p5.js — loaded first, ml5 depends on it being available */}
+        <Script
+          src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"
+          strategy="afterInteractive"
+        />
+        {/* ml5.js v1 — loaded after p5 */}
         <Script
           src="https://unpkg.com/ml5@1/dist/ml5.min.js"
           strategy="afterInteractive"

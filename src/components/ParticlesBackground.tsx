@@ -3,26 +3,25 @@
 import { useRef, useEffect } from "react";
 import { AudioData } from "@/hooks/useAudioReactive";
 
-interface Particle {
+interface CodeDrop {
     x: number;
     y: number;
-    vx: number;
-    vy: number;
-    size: number;
-    baseSize: number;
+    speed: number;
+    chars: string[];
+    fontSize: number;
     alpha: number;
-    life: number;
-    maxLife: number;
+    glitchPhase: number;
 }
+
+const DIMENSIONAL_CHARS = "010101+-×÷=::||∆∇≈∫∬∭∮∯∰※⊕⊗⊘⊙⊚⊛⊜⊝".split("");
 
 export default function ParticlesBackground({ audio, phase }: { audio: AudioData; phase: number }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const particlesRef = useRef<Particle[]>([]);
+    const dropsRef = useRef<CodeDrop[]>([]);
     const reqRef = useRef<number>(0);
 
-    // Only render in phase 1 and 2
     useEffect(() => {
-        if (phase > 2) return;
+        if (phase !== 1) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -36,81 +35,83 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
         resize();
         window.addEventListener("resize", resize);
 
-        const createParticle = (): Particle => {
+        const createDrop = (resetY: boolean = false): CodeDrop => {
+            const length = Math.floor(Math.random() * 5) + 3;
+            const chars = [];
+            for (let i = 0; i < length; i++) {
+                chars.push(DIMENSIONAL_CHARS[Math.floor(Math.random() * DIMENSIONAL_CHARS.length)]);
+            }
             return {
                 x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                vx: (Math.random() - 0.5) * 2, // Más velocidad base
-                vy: (Math.random() - 0.5) * 2,
-                baseSize: Math.random() * 3 + 1, // Tamaño base más grande
-                size: 0,
-                alpha: Math.random() * 0.6 + 0.2,
-                life: 0,
-                maxLife: Math.random() * 150 + 50,
+                y: resetY ? (Math.random() * -100) : Math.random() * canvas.height, // Si es nuevo comienza arriba, si no, se esparce
+                speed: Math.random() * 1.5 + 0.5,
+                chars,
+                fontSize: Math.floor(Math.random() * 6) + 10, // 10 a 16 px
+                alpha: Math.random() * 0.3 + 0.05,
+                glitchPhase: Math.random() * Math.PI * 2,
             };
         };
 
-        // Initialize some particles
+        // Initialize 100 drops
         for (let i = 0; i < 150; i++) {
-            particlesRef.current.push(createParticle());
+            dropsRef.current.push(createDrop(false));
         }
 
         const render = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Fondo ligeramente negro para crear "trail" (motion blur sutil)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const { bass, volume } = audio;
-            const currentParticles = particlesRef.current;
+            const currentDrops = dropsRef.current;
 
-            // Explosión de partículas si el bajo es fuerte
-            if (bass > 0.4) {
-                for (let k = 0; k < 3; k++) currentParticles.push(createParticle());
-            } else if (Math.random() < volume * 0.5) {
-                currentParticles.push(createParticle());
-            }
+            // Audio reaction
+            const isGlitchy = bass > 0.4;
+            const theGlow = bass * 15;
 
-            // Cap elements
-            if (currentParticles.length > 500) {
-                currentParticles.splice(0, currentParticles.length - 500);
-            }
+            ctx.shadowBlur = theGlow;
+            ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+            ctx.textAlign = "center";
 
-            for (let i = currentParticles.length - 1; i >= 0; i--) {
-                const p = currentParticles[i];
-                p.life++;
-                if (p.life >= p.maxLife) {
-                    currentParticles.splice(i, 1);
-                    currentParticles.push(createParticle()); // replace
+            for (let i = 0; i < currentDrops.length; i++) {
+                const drop = currentDrops[i];
+
+                drop.y += drop.speed * (1 + bass); // cae ligeramente más rápido con el beat
+
+                // Reiniciar si pasa del borde
+                if (drop.y - (drop.chars.length * drop.fontSize) > canvas.height) {
+                    currentDrops[i] = createDrop(true);
                     continue;
                 }
 
-                // Audio reactive behavior (explosive speed)
-                p.x += p.vx * (1 + bass * 25);
-                p.y += p.vy * (1 + bass * 25);
+                drop.glitchPhase += 0.1;
 
-                // Audio reactive size (huge size increase)
-                p.size = p.baseSize + (bass * 20);
+                ctx.font = `300 ${drop.fontSize}px 'JetBrains Mono', monospace`;
 
-                // Wrap around
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
+                // Dibujar caracteres en columna
+                for (let c = 0; c < drop.chars.length; c++) {
+                    const charY = drop.y - (c * drop.fontSize); // el primer char es el de más abajo (cabeza), los siguientes están arriba (cola)
 
-                // Draw
-                const fade = Math.sin((p.life / p.maxLife) * Math.PI);
-                const finalAlpha = Math.min(1, p.alpha * fade + (bass * 0.6));
+                    let charX = drop.x;
+                    // Efecto glitch audioreactivo
+                    if (isGlitchy && Math.sin(drop.glitchPhase + c) > 0.8) {
+                        charX += (Math.random() - 0.5) * 10;
+                        // Ocasionalmente cambiar letra en el glitch
+                        if (Math.random() < 0.1) {
+                            drop.chars[c] = DIMENSIONAL_CHARS[Math.floor(Math.random() * DIMENSIONAL_CHARS.length)];
+                        }
+                    }
 
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    // La letra cabeza (c=0) es la más brillante, la cola se va haciendo opaca
+                    const headBoost = c === 0 ? 0.3 : 0;
+                    const charAlpha = Math.max(0.01, drop.alpha - (c * 0.05) + headBoost + (bass * 0.2));
 
-                // Audio reactive Glow
-                ctx.shadowBlur = bass * 40;
-                ctx.shadowColor = `rgba(255, 255, 255, ${finalAlpha})`;
-
-                ctx.fillStyle = `rgba(255, 255, 255, ${finalAlpha})`;
-                ctx.fill();
+                    ctx.fillStyle = `rgba(255, 255, 255, ${charAlpha})`;
+                    ctx.fillText(drop.chars[c], charX, charY);
+                }
             }
 
-            // Reset shadow before clearing frame
+            // Restore shadow
             ctx.shadowBlur = 0;
 
             reqRef.current = requestAnimationFrame(render);
@@ -121,17 +122,17 @@ export default function ParticlesBackground({ audio, phase }: { audio: AudioData
         return () => {
             window.removeEventListener("resize", resize);
             cancelAnimationFrame(reqRef.current);
-            particlesRef.current = [];
+            dropsRef.current = [];
         };
     }, [audio, phase]);
 
-    if (phase > 2) return null;
+    if (phase !== 1) return null;
 
     return (
         <canvas
             ref={canvasRef}
             className="absolute inset-0 z-0 pointer-events-none"
-            style={{ opacity: 0.8 }}
+            style={{ opacity: 0.7 }}
         />
     );
 }
